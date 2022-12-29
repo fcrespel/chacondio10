@@ -39,7 +39,7 @@ void sendWord(int pin, unsigned word, unsigned bits) {
 	}
 }
 
-void transmit(int pin, unsigned sender, unsigned button, bool onoff) {
+void transmit(int pin, unsigned sender, bool group, unsigned button, bool onoff) {
 	// Start lock
 	digitalWrite(pin, HIGH);
 	delayMicroseconds(TIME_HIGH_LOCK);
@@ -55,7 +55,7 @@ void transmit(int pin, unsigned sender, unsigned button, bool onoff) {
 	sendWord(pin, sender, 26);
 
 	// Group bit
-	sendPair(pin, false);
+	sendPair(pin, group);
 
 	// On/off bit
 	sendPair(pin, onoff);
@@ -72,15 +72,27 @@ void transmit(int pin, unsigned sender, unsigned button, bool onoff) {
 int main(int argc, char **argv) {
 	// If no command line argument is given, print the help text
 	if (argc < 5) {
-		printf("Usage:  %s <gpio pin> <sender code> <button number> <0|1> [repeat count]\n", argv[0]);
-		printf("Sample: %s 0 12345678 1 1 5\n", argv[0]);
+		printf("Usage:  %s <gpio pin> <sender code> <button number> <state> [repeat count]\n", argv[0]);
+		printf("Sample: %s 0 12345678 1 1 (button 1 ON)\n", argv[0]);
+		printf("        %s 0 12345678 1 0 (button 1 OFF)\n\n", argv[0]);
+		printf("Arguments:\n");
+		printf("  <gpio pin> is the WiringPi pin number\n");
+		printf("  <sender code> is an arbitrary 26-bit number\n");
+		printf("  <button number> is a number between 0 and 15, or -1 for all (group function)\n");
+		printf("  <state> is 0 (OFF) or 1 (ON)\n");
+		printf("  [repeat count] is an optional number of times to repeat the message (default: 5)\n");
 		return -1;
 	}
 
 	// Parse arguments
 	int pin = atoi(argv[1]);    // see https://projects.drogon.net/raspberry-pi/wiringpi/pins/
 	int sender = atoi(argv[2]); // 26-bit sender code
+	bool group = false;
 	int button = atoi(argv[3]); // 4-bit button number
+	if (button < 0) {
+		button = 0;
+		group = true;
+	}
 	int onoff = atoi(argv[4]);  // 1-bit on/off
 	int repeat = 5;             // number of times to repeat the message
 	if (argc >= 6) {
@@ -93,7 +105,7 @@ int main(int argc, char **argv) {
 
 	// Send message
 	for (int i = 0; i < repeat; i++) {
-		transmit(pin, sender, button, onoff);
+		transmit(pin, sender, group, button, onoff);
 		delay(10);
 	}
 
